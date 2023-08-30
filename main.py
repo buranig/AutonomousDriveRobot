@@ -12,7 +12,7 @@ def main():
 
     # start position
     start = (200, 200)
-    goal = (1000, 500)
+    goal = (600, 200)
 
     # dimentions
     dims = (600, 1200)

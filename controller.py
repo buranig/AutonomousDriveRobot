@@ -156,6 +156,10 @@ class Controller2D(object):
             self.idx += 1
             self.target = self._waypoints[self.idx]
 
+        if self.idx < len(self._waypoints) and self.dist((self._current_x, self._current_y), self._waypoints[-1]) < 10:
+            self._desired_speed = 0
+            self.steer = 0
+
         alpha = math.atan2(self.target[1] - self._current_y, self.target[0] - self._current_x) - self._current_yaw
 
         self.steer = math.atan2(2.0 * WB * math.sin(alpha) / Lf, 1.0)

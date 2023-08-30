@@ -115,7 +115,7 @@ class RRTGraph:
         # path
         self.goalstate = None
         self.path = []
-        self.dmax = 40
+        self.dmax = 50
 
         # Car dimension
         self.car_lat_dim = car_lat_dim * 1.5
