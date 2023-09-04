@@ -22,6 +22,7 @@ class Envir:
         self.width = dimentions[1]
         self.start = start
         self.goal = goal
+        self.target = start
 
         # windows settings
         pygame.display.set_caption("Differential drive robot")
@@ -73,6 +74,7 @@ class Envir:
     def drawMap(self, obstacles):
         pygame.draw.circle(self.map, self.green, self.start, self.nodeRad + 5, 0)
         pygame.draw.circle(self.map, self.red, self.goal, self.nodeRad + 20, 1)
+        pygame.draw.circle(self.map, self.blue, self.target, self.nodeRad + 5, 0)
         self.drawObs(obstacles)
 
     def drawPath(self, path):

@@ -29,7 +29,7 @@ def main():
 
     # obstacles
     obstacles = graph.makeobs()
-    environment.drawMap(obstacles)
+    environment.drawMap(obstacles, )
 
     iteration = 0
 
@@ -122,6 +122,7 @@ def main():
         environment.trail((robot.x, robot.y))
         environment.robot_frame((robot.x, robot.y), robot.yaw)
         # environment.robot_frame((robot.x, robot.y), robot.theta)
+        environment.target = controller.target
         environment.drawMap(obstacles)
         environment.drawPath(graph.getPathCoords())
         environment.write_info(round(robot.x, 2), round(robot.y, 2), round(np.sqrt(robot.vx ** 2 + robot.vy ** 2), 2),
