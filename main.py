@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import pygame
 from difdrive import RRTGraph, Robot, Envir
@@ -120,7 +122,8 @@ def main():
         robot.update(controller.throttle, controller.steer, dt)
         robot.draw(environment.map)
         environment.trail((robot.x, robot.y))
-        environment.robot_frame((robot.x, robot.y), robot.yaw)
+        print(math.degrees(controller.steer))
+        environment.robot_frame((robot.x, robot.y), robot.yaw, controller.steer)
         # environment.robot_frame((robot.x, robot.y), robot.theta)
         environment.target = controller.target
         environment.drawMap(obstacles)

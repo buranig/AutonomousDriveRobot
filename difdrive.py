@@ -62,14 +62,16 @@ class Envir:
             self.trail_set.pop(0)
         self.trail_set.append(pos)
 
-    def robot_frame(self, pos, rotation):
+    def robot_frame(self, pos, yaw, delta):
         n = 80
 
         centerx, centery = pos
-        x_axis = (centerx + n * math.cos(rotation), centery + n * math.sin(rotation))
-        y_axis = (centerx + n * math.cos(rotation + math.pi / 2), centery + n * math.sin(rotation + math.pi / 2))
+        x_axis = (centerx + n * math.cos(yaw), centery + n * math.sin(yaw))
+        y_axis = (centerx + n * math.cos(yaw + math.pi / 2), centery + n * math.sin(yaw + math.pi / 2))
+        arrow = (centerx + n / 2 * math.cos(yaw + delta), centery + n / 2 * math.sin(yaw + delta))
         pygame.draw.line(self.map, self.red, (centerx, centery), x_axis, 3)
         pygame.draw.line(self.map, self.green, (centerx, centery), y_axis, 3)
+        pygame.draw.line(self.map, self.black, (centerx, centery), arrow, 2)
 
     def drawMap(self, obstacles):
         pygame.draw.circle(self.map, self.green, self.start, self.nodeRad + 5, 0)
@@ -413,7 +415,7 @@ class Robot:
 
         # robot dims
         self.width = width
-        self.halfWidth = 0.5*width
+        self.halfWidth = 0.5 * width
         self.x = startpos[0]
         self.y = startpos[1]
         self.theta = 0
@@ -436,26 +438,27 @@ class Robot:
         self.target = self.coord_path[self.idx]
 
     def draw(self, map):
-        #map.blit(self.rotated, self.rect)
+        # map.blit(self.rotated, self.rect)
         pygame.draw.circle(map, self.blue, (self.x, self.y), 20, 1)
-        #pygame.draw.rect(map, self.blue, self.rect)
+        # pygame.draw.rect(map, self.blue, self.rect)
 
     def following(self):
         delta_x = self.target[0] - self.x
         delta_y = self.target[1] - self.y
         self.u = delta_x * math.cos(self.theta) + delta_y * math.sin(self.theta)
-        self.w = (-1 / self.halfWidth) * math.sin(self.theta) * delta_x + delta_y * (1 / self.halfWidth) * math.cos(self.theta)
+        self.w = (-1 / self.halfWidth) * math.sin(self.theta) * delta_x + delta_y * (1 / self.halfWidth) * math.cos(
+            self.theta)
 
         self.vl = (2 * self.u - self.w * self.width) / (2 * self.halfWidth)
         self.vr = (2 * self.u + self.w * self.width) / (2 * self.halfWidth)
-        #print(f'vl: {self.vl}, vr: {self.vr}')
+        # print(f'vl: {self.vl}, vr: {self.vr}')
 
     def move(self, dt, event=None):
         self.x += (self.u * math.cos(self.theta) - self.width * math.sin(self.theta) * self.w) * dt
         self.y += (self.u * math.sin(self.theta) + self.width * math.cos(self.theta) * self.w) * dt
         self.theta += self.w * dt
 
-        if self.dist(point1=(self.x, self.y), point2=self.target) < 5 and self.idx<len(self.coord_path)-1:
+        if self.dist(point1=(self.x, self.y), point2=self.target) < 5 and self.idx < len(self.coord_path) - 1:
             self.idx += 1
             self.target = self.coord_path[self.idx]
 

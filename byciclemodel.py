@@ -41,9 +41,15 @@ class NonLinearBicycleModel():
         self.y_screen = y
         self.v_screen = np.sqrt(vx ** 2 + vy ** 2)
 
+        self.rectangle = Rectangle((self.x, self.y), yaw, 20, 20)
+
     def draw(self, map):
         # map.blit(self.rotated, self.rect)
-        pygame.draw.circle(map, self.blue, (self.x, self.y), 20, 1)
+        #pygame.draw.circle(map, self.blue, (self.x, self.y), 20, 1)
+        self.rectangle.rotation((self.x, self.y), self.yaw)
+        points = [self.rectangle.buf_p1, self.rectangle.buf_p2, self.rectangle.buf_p3, self.rectangle.buf_p4,
+                  self.rectangle.buf_p1]
+        pygame.draw.lines(map, self.red, False, points, 1)
         # pygame.draw.rect(map, self.blue, self.rect)
 
     def update(self, throttle, delta, dt):
@@ -62,7 +68,7 @@ class NonLinearBicycleModel():
         self.yaw = normalize_angle(self.yaw)
         Ffy = -Cf * math.atan2(((self.vy + Lf * self.omega) / self.vx - delta), 1.0)
         Fry = -Cr * math.atan2((self.vy - Lr * self.omega) / self.vx, 1.0)
-        R_x = self.c_r1 * self.vx
+        R_x = self.c_r1 * abs(self.vx)
         F_aero = self.c_a * self.vx ** 2
         F_load = F_aero + R_x
         self.vx = self.vx + (throttle - Ffy * math.sin(delta) / m - F_load / m + self.vy * self.omega) * dt
@@ -117,3 +123,63 @@ def normalize_angle(angle):
         angle += 2.0 * np.pi
 
     return angle
+
+
+class Rectangle():
+    def __init__(self, center, yaw, width, length):
+        # colors
+        self.black = (0, 0, 0)
+        self.white = (255, 255, 255)
+        self.green = (0, 255, 0)
+        self.blue = (0, 0, 255)
+        self.red = (255, 0, 0)
+        self.yellow = (255, 255, 0)
+        self.grey = (70, 70, 70)
+
+        self.center_x, self.center_y = center
+        self.p1 = (self.center_x - length / 2, self.center_y - width / 2)
+        self.p2 = (self.center_x - length / 2, self.center_y + width / 2)
+        self.p3 = (self.center_x + length / 2, self.center_y + width / 2)
+        self.p4 = (self.center_x + length / 2, self.center_y - width / 2)
+
+        self.buf_p1 = self.p1
+        self.buf_p2 = self.p2
+        self.buf_p3 = self.p3
+        self.buf_p4 = self.p4
+
+        self.yaw = yaw
+
+        self.rotation(center, yaw)
+
+    def rotation(self, current_pos, yaw):
+        self.yaw = yaw
+        vec = np.array([current_pos[0] - self.center_x, current_pos[1] - self.center_y])
+
+        # Traslating the corners
+        self.p1 = self.p1 + vec
+        self.p2 = self.p2 + vec
+        self.p3 = self.p3 + vec
+        self.p4 = self.p4 + vec
+
+        # Rotating the corners about the car center
+        self.center_x, self.center_y = current_pos
+        self.buf_p1 = np.array(
+            [self.center_x + (self.p1[0] - self.center_x) * math.cos(self.yaw) - (
+                    self.p1[1] - self.center_y) * math.sin(self.yaw),
+             self.center_y + (self.p1[0] - self.center_x) * math.sin(self.yaw) + (
+                     self.p1[1] - self.center_y) * math.cos(self.yaw)])
+        self.buf_p2 = np.array(
+            [self.center_x + (self.p2[0] - self.center_x) * math.cos(self.yaw) - (
+                    self.p2[1] - self.center_y) * math.sin(self.yaw),
+             self.center_y + (self.p2[0] - self.center_x) * math.sin(self.yaw) + (
+                     self.p2[1] - self.center_y) * math.cos(self.yaw)])
+        self.buf_p3 = np.array(
+            [self.center_x + (self.p3[0] - self.center_x) * math.cos(self.yaw) - (
+                    self.p3[1] - self.center_y) * math.sin(self.yaw),
+             self.center_y + (self.p3[0] - self.center_x) * math.sin(self.yaw) + (
+                     self.p3[1] - self.center_y) * math.cos(self.yaw)])
+        self.buf_p4 = np.array(
+            [self.center_x + (self.p4[0] - self.center_x) * math.cos(self.yaw) - (
+                    self.p4[1] - self.center_y) * math.sin(self.yaw),
+             self.center_y + (self.p4[0] - self.center_x) * math.sin(self.yaw) + (
+                     self.p4[1] - self.center_y) * math.cos(self.yaw)])
