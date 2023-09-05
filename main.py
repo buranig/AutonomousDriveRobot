@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 import pygame
-from difdrive import RRTGraph, Robot, Envir
+from difdrive import RRTGraph, Envir
 import time
 from byciclemodel import NonLinearBicycleModel
 from controller import Controller2D
@@ -54,6 +54,8 @@ def main():
                              environment.edgeThickness)
         if iteration % 5 == 0:
             pygame.display.update()
+
+        # restarting tree if search takes too long
         if not graph.goalFlag and iteration > 8000:
             (x, y) = start
             graph.goalFlag = False
@@ -67,9 +69,10 @@ def main():
             graph.parent.append(0)
 
             # optimization
-            graph.collision_count = {}
+            graph.collision_count = {} # allows us to turn off some nodes that are in bad positions
             graph.collision_count[0] = 0
             graph.iteration = 0
+
             # path
             graph.goalstate = None
             graph.path = []
@@ -88,13 +91,9 @@ def main():
     pygame.display.update()
 
     coord_path, coord_path_x, coord_path_y = graph.waypoints2path()
-    # print(list(zip(coord_path_x, coord_path_y)))
-    # print(f'Path = {coord_path}')
     # print(f'Path found, Execution time: {time.time() - t0} sec. Iterations {iteration}\n')
 
     # the robot
-    # robot = Robot(start, r"C:\Users\Giacomo Burani\PycharmProjects\DifDriveRobot\DDR.png",
-    #               0.03 * 3779.52, coord_path=coord_path)
     robot = NonLinearBicycleModel(start[0], start[1])
 
     # controller
@@ -104,27 +103,34 @@ def main():
     # dt
     dt = 0
     last_time = pygame.time.get_ticks()
+
     # simulation loop
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             # robot.move(dt=dt, event=event)
+
+        # simulation
         dt = (pygame.time.get_ticks() - last_time) / 1000
         last_time = pygame.time.get_ticks()
+
+        # updating position
         pygame.display.update()
         environment.map.fill(environment.white)
-        # robot.move(dt=dt)
-        # print(f"Robot speed, vl: {robot.vl}, vr: {robot.vr}")
         controller.update_values(robot.x, robot.y, robot.yaw, np.sqrt(robot.vx ** 2 + robot.vy ** 2))
+
+        # updating the control inputs
         controller.pure_pursuit_steer_control()
-        # controller.update_desired_speed()
+
+        # applying control inputs
         robot.update(controller.throttle, controller.steer, dt)
+
+        # drawing the new situation
         robot.draw(environment.map)
         environment.trail((robot.x, robot.y))
         print(math.degrees(controller.steer))
         environment.robot_frame((robot.x, robot.y), robot.yaw, controller.steer)
-        # environment.robot_frame((robot.x, robot.y), robot.theta)
         environment.target = controller.target
         environment.drawMap(obstacles)
         environment.drawPath(graph.getPathCoords())

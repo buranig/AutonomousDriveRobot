@@ -45,7 +45,7 @@ class NonLinearBicycleModel():
 
     def draw(self, map):
         # map.blit(self.rotated, self.rect)
-        #pygame.draw.circle(map, self.blue, (self.x, self.y), 20, 1)
+        # pygame.draw.circle(map, self.blue, (self.x, self.y), 20, 1)
         self.rectangle.rotation((self.x, self.y), self.yaw)
         points = [self.rectangle.buf_p1, self.rectangle.buf_p2, self.rectangle.buf_p3, self.rectangle.buf_p4,
                   self.rectangle.buf_p1]
@@ -75,6 +75,11 @@ class NonLinearBicycleModel():
         self.vy = self.vy + (Fry / m + Ffy * math.cos(delta) / m - self.vx * self.omega) * dt
         self.omega = self.omega + (Ffy * Lf * math.cos(delta) - Fry * Lr) / Iz * dt
 
+
+# model:
+# Gao, Feng, Qiuxia Hu, Jie Ma, and Xiangyu Han. 2021.
+# "A Simplified Vehicle Dynamics Model for Motion Planner Designed by Nonlinear Model Predictive Control"
+# Applied Sciences 11, no. 21: 9887. https://doi.org/10.3390/app11219887
 
 # reference: https://www.coursera.org/lecture/intro-self-driving-cars/lesson-2-the-kinematic-bicycle-model-Bi8yE,
 # we used the "Rear Alex Bicycle model" as mentioned in that tutorial. TODO: update Read.me
