@@ -5,7 +5,9 @@ from shapely.ops import nearest_points
 import random
 import numpy as np
 
-
+"""
+This file contains the classes for generating the simulation environment and the RRT path finding algorithm
+"""
 class Envir:
     def __init__(self, start, goal, dimentions, obsdim, obsnum):
         # colors
@@ -53,8 +55,6 @@ class Envir:
 
     def trail(self, pos):
         for i in range(0, len(self.trail_set) - 1):
-            # print(f'i: {i}, len: {len(self.trail_set)}')
-            # print((self.trail_set[i][0], self.trail_set[i][1]),(self.trail_set[i+1][0], self.trail_set[i+1][1]))
             pygame.draw.line(self.map, self.yellow, (self.trail_set[i][0], self.trail_set[i][1]),
                              (self.trail_set[i + 1][0], self.trail_set[i + 1][1]))
 
@@ -62,14 +62,16 @@ class Envir:
             self.trail_set.pop(0)
         self.trail_set.append(pos)
 
-    def robot_frame(self, pos, rotation):
+    def robot_frame(self, pos, yaw, delta):
         n = 80
 
         centerx, centery = pos
-        x_axis = (centerx + n * math.cos(rotation), centery + n * math.sin(rotation))
-        y_axis = (centerx + n * math.cos(rotation + math.pi / 2), centery + n * math.sin(rotation + math.pi / 2))
+        x_axis = (centerx + n * math.cos(yaw), centery + n * math.sin(yaw))
+        y_axis = (centerx + n * math.cos(yaw + math.pi / 2), centery + n * math.sin(yaw + math.pi / 2))
+        arrow = (centerx + n / 2 * math.cos(yaw + delta), centery + n / 2 * math.sin(yaw + delta))
         pygame.draw.line(self.map, self.red, (centerx, centery), x_axis, 3)
         pygame.draw.line(self.map, self.green, (centerx, centery), y_axis, 3)
+        pygame.draw.line(self.map, self.black, (centerx, centery), arrow, 2)
 
     def drawMap(self, obstacles):
         pygame.draw.circle(self.map, self.green, self.start, self.nodeRad + 5, 0)
@@ -396,106 +398,3 @@ class RRTGraph:
         pathx.append(oldpath[-1][0])
         pathy.append(oldpath[-1][1])
         return path, pathx, pathy
-
-
-class Robot:
-    def __init__(self, startpos, robotImg, width, coord_path):
-        self.m2p = 3779.52  # meters to pixels
-
-        # colors
-        self.black = (0, 0, 0)
-        self.white = (255, 255, 255)
-        self.green = (0, 255, 0)
-        self.blue = (0, 0, 255)
-        self.red = (255, 0, 0)
-        self.yellow = (255, 255, 0)
-        self.grey = (70, 70, 70)
-
-        # robot dims
-        self.width = width
-        self.halfWidth = 0.5*width
-        self.x = startpos[0]
-        self.y = startpos[1]
-        self.theta = 0
-        self.vl = 0  # 0.01 * self.m2p  # m/s
-        self.vr = 0  # 0.01 * self.m2p
-        self.maxspeed = 0.02 * self.m2p
-        self.minspeed = -0.02 * self.m2p
-
-        self.u = 30  # pix/sec
-        self.w = 0  # rad/sec
-
-        # graphics
-        self.img = pygame.image.load(robotImg)
-        self.rotated = self.img
-        self.rect = self.rotated.get_rect(center=(self.x, self.y))
-
-        # path to follow
-        self.coord_path = coord_path
-        self.idx = 1
-        self.target = self.coord_path[self.idx]
-
-    def draw(self, map):
-        #map.blit(self.rotated, self.rect)
-        pygame.draw.circle(map, self.blue, (self.x, self.y), 20, 1)
-        #pygame.draw.rect(map, self.blue, self.rect)
-
-    def following(self):
-        delta_x = self.target[0] - self.x
-        delta_y = self.target[1] - self.y
-        self.u = delta_x * math.cos(self.theta) + delta_y * math.sin(self.theta)
-        self.w = (-1 / self.halfWidth) * math.sin(self.theta) * delta_x + delta_y * (1 / self.halfWidth) * math.cos(self.theta)
-
-        self.vl = (2 * self.u - self.w * self.width) / (2 * self.halfWidth)
-        self.vr = (2 * self.u + self.w * self.width) / (2 * self.halfWidth)
-        #print(f'vl: {self.vl}, vr: {self.vr}')
-
-    def move(self, dt, event=None):
-        self.x += (self.u * math.cos(self.theta) - self.width * math.sin(self.theta) * self.w) * dt
-        self.y += (self.u * math.sin(self.theta) + self.width * math.cos(self.theta) * self.w) * dt
-        self.theta += self.w * dt
-
-        if self.dist(point1=(self.x, self.y), point2=self.target) < 5 and self.idx<len(self.coord_path)-1:
-            self.idx += 1
-            self.target = self.coord_path[self.idx]
-
-        '''if event is not None:
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_w:
-                    self.vl += 0.001 * self.m2p
-                elif event.key == pygame.K_a:
-                    self.vl -= 0.001 * self.m2p
-                elif event.key == pygame.K_e:
-                    self.vr += 0.001 * self.m2p
-                elif event.key == pygame.K_d:
-                    self.vr -= 0.001 * self.m2p
-            self.x += ((self.vl + self.vr) / 2.0) * math.cos(self.theta) * dt
-            self.y -= ((self.vl + self.vr) / 2.0) * math.sin(
-                self.theta) * dt  # minus because robot y axis is in the opposite
-            # direction as the window one
-            self.theta += (self.vr - self.vl) / self.width * dt
-            if self.theta > 2 * math.pi or self.theta < -2 * math.pi:
-                self.theta = 0
-            # set max and min speeds
-            self.vr = min(self.vr, self.maxspeed)
-            self.vl = min(self.vl, self.maxspeed)
-            self.vr = max(self.vr, self.minspeed)
-            self.vl = max(self.vl, self.minspeed)'''
-
-        self.rotated = pygame.transform.rotozoom(self.img,
-                                                 math.degrees(-self.theta), 1)
-        self.rect = self.rotated.get_rect(center=(self.x, self.y))
-
-        self.following()
-
-    def dist(self, point1, point2):
-        x1, y1 = point1
-        x2, y2 = point2
-
-        x1 = float(x1)
-        x2 = float(x2)
-        y1 = float(y1)
-        y2 = float(y2)
-
-        distance = math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
-        return distance
