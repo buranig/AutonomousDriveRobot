@@ -53,8 +53,6 @@ class Envir:
 
     def trail(self, pos):
         for i in range(0, len(self.trail_set) - 1):
-            # print(f'i: {i}, len: {len(self.trail_set)}')
-            # print((self.trail_set[i][0], self.trail_set[i][1]),(self.trail_set[i+1][0], self.trail_set[i+1][1]))
             pygame.draw.line(self.map, self.yellow, (self.trail_set[i][0], self.trail_set[i][1]),
                              (self.trail_set[i + 1][0], self.trail_set[i + 1][1]))
 

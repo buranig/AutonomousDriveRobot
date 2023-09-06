@@ -58,7 +58,8 @@ class Controller2D(object):
             if dist < min_dist:
                 min_dist = dist
                 min_idx = i
-        # next lines allows us to define a desired speed at every waypoint
+
+        # next lines allow us to define a desired speed at every waypoint
         if min_idx < len(self._waypoints) - 1:
             desired_speed = self._waypoints[min_idx][2]
         else:

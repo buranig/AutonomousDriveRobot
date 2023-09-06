@@ -44,13 +44,10 @@ class NonLinearBicycleModel():
         self.rectangle = Rectangle((self.x, self.y), yaw, 20, 20)
 
     def draw(self, map):
-        # map.blit(self.rotated, self.rect)
-        # pygame.draw.circle(map, self.blue, (self.x, self.y), 20, 1)
         self.rectangle.rotation((self.x, self.y), self.yaw)
         points = [self.rectangle.buf_p1, self.rectangle.buf_p2, self.rectangle.buf_p3, self.rectangle.buf_p4,
                   self.rectangle.buf_p1]
         pygame.draw.lines(map, self.red, False, points, 1)
-        # pygame.draw.rect(map, self.blue, self.rect)
 
     def update(self, throttle, delta, dt):
         delta = np.clip(delta, -max_steer, max_steer)
