@@ -38,7 +38,7 @@ class Controller2D(object):
         '''self.K_P = 1
         self.K_D = 0.001
         self.K_I = 0.3'''
-        self.K_P = 10
+        self.K_P = 3
         self.K_D = 0.001
         self.K_I = 0.3
 
@@ -58,8 +58,7 @@ class Controller2D(object):
             if dist < min_dist:
                 min_dist = dist
                 min_idx = i
-
-        # next lines allow us to define a desired speed at every waypoint
+        # next lines allows us to define a desired speed at every waypoint
         if min_idx < len(self._waypoints) - 1:
             desired_speed = self._waypoints[min_idx][2]
         else:
@@ -151,6 +150,7 @@ class Controller2D(object):
         print(f'Steer: {self.steer}, Throttle: {self.throttle}')
 
     def pure_pursuit_steer_control(self):
+        # TODO: implement change in target on the visual simulation
         if self.dist(point1=(self._current_x, self._current_y), point2=self.target) < Lf and self.idx < len(
                 self._waypoints) - 1:
             self.idx += 1
@@ -163,13 +163,6 @@ class Controller2D(object):
         alpha = math.atan2(self.target[1] - self._current_y, self.target[0] - self._current_x) - self._current_yaw
 
         self.steer = math.atan2(2.0 * WB * math.sin(alpha) / Lf, 1.0)
-
-        # decreasing the desired speed when turning
-        if self.steer > math.radians(10) or self.steer < -math.radians(10):
-            self._desired_speed = 5
-        else:
-            self._desired_speed = 9
-
         self.throttle = self.proportional_control()
 
     def proportional_control(self):
