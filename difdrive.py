@@ -140,7 +140,10 @@ class RRTGraph:
             while startgoalcol:
                 upper = self.makeRandomRect()
                 rectang = pygame.Rect(upper, (self.obsDim, self.obsDim))
-                if rectang.collidepoint((self.start) or rectang.collidepoint(self.goal)):
+
+                rectang_buf = self.pygame2shapley(rectang)  # converting to shapely geometry
+                if rectang_buf.intersects((Point(self.start).buffer(self.car_lat_dim)) or rectang_buf.intersects(
+                        Point(self.goal).buffer(self.car_lat_dim))):
                     startgoalcol = True
                 else:
                     startgoalcol = False

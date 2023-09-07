@@ -129,13 +129,21 @@ def main():
         # drawing the new situation
         robot.draw(environment.map)
         environment.trail((robot.x, robot.y))
-        print(math.degrees(controller.steer))
+        #print(math.degrees(controller.steer))
         environment.robot_frame((robot.x, robot.y), robot.yaw, controller.steer)
         environment.target = controller.target
         environment.drawMap(obstacles)
         environment.drawPath(graph.getPathCoords())
         environment.write_info(round(robot.x, 2), round(robot.y, 2), round(np.sqrt(robot.vx ** 2 + robot.vy ** 2), 2),
-                               robot.yaw, controller.throttle)
+                               robot.yaw, round(controller.throttle,2))
+        # check reaching goal
+        dist_to_goal = math.hypot(robot.x - goal[0], robot.y - goal[1])
+        if dist_to_goal <= graph.car_lat_dim:
+            print("Goal!!")
+            pygame.display.update()
+            pygame.event.clear()
+            pygame.event.wait(0)
+            break
 
 
 if __name__ == '__main__':
