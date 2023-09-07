@@ -135,7 +135,7 @@ def main():
         environment.drawMap(obstacles)
         environment.drawPath(graph.getPathCoords())
         environment.write_info(round(robot.x, 2), round(robot.y, 2), round(np.sqrt(robot.vx ** 2 + robot.vy ** 2), 2),
-                               robot.yaw)
+                               robot.yaw, controller.throttle)
 
 
 if __name__ == '__main__':

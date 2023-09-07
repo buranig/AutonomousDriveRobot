@@ -14,6 +14,19 @@ import numpy as np
 
 show_animation = True
 
+max_steer = np.radians(30.0)  # [rad] max steering angle
+L = 2.9  # [m] Wheel base of vehicle
+# dt = 0.1
+Lr = L / 2.0  # [m]
+Lf = L - Lr
+Cf = 1600.0 * 2.0  # N/rad
+Cr = 1700.0 * 2.0  # N/rad
+Iz = 2250.0  # kg/m2
+m = 1500.0  # kg
+# Aerodynamic and friction coefficients
+c_a = 1.36
+c_r1 = 0.01
+
 
 def dwa_control(x, config, goal, ob):
     """
@@ -38,13 +51,13 @@ class Config:
 
     def __init__(self):
         # robot parameter
-        self.max_speed = 1.0  # [m/s]
-        self.min_speed = -0.5  # [m/s]
-        self.max_yaw_rate = 40.0 * math.pi / 180.0  # [rad/s]
-        self.max_accel = 0.2  # [m/ss]
-        self.max_delta_yaw_rate = 40.0 * math.pi / 180.0  # [rad/ss]
-        self.v_resolution = 0.01  # [m/s]
-        self.yaw_rate_resolution = 0.1 * math.pi / 180.0  # [rad/s]
+        self.max_speed = 0.5 # [m/s]
+        self.min_speed = 0# [m/s]
+        self.max_delta = np.radians(45)  # [rad]
+        # self.max_accel = 0.2  # [m/ss]
+        # self.max_delta_yaw_rate = 40.0 * math.pi / 180.0  # [rad/ss]
+        self.v_resolution = 0.1# [m/s]
+        self.delta_resolution = math.radians(5)  # [rad/s]
         self.dt = 0.1  # [s] Time tick for motion prediction
         self.predict_time = 3.0  # [s]
         self.to_goal_cost_gain = 0.15
@@ -97,34 +110,68 @@ def motion(x, u, dt):
     motion model
     initial state [x(m), y(m), yaw(rad), v(m/s), omega(rad/s)]
     """
+    delta = u[1]
+    throttle = u[0]
 
-    x[2] += u[1] * dt
-    x[0] += u[0] * math.cos(x[2]) * dt
-    x[1] += u[0] * math.sin(x[2]) * dt
-    x[3] = u[0]
-    x[4] = u[1]
+    beta = math.atan2((Lr * math.tan(delta) / L), 1.0)
+    vx = min(x[3] * math.cos(beta), 2.0)
+    vy = min(x[3] * math.sin(beta), 2.0)
 
+    delta = np.clip(delta, -max_steer, max_steer)
+    Ffy = -Cf * math.atan2(((vy + Lf * x[4]) / vx - delta), 1.0)
+    Fry = -Cr * math.atan2((vy - Lr * x[4]) / vx, 1.0)
+    R_x = c_r1 * abs(vx)
+    F_aero = c_a * vx ** 2
+    F_load = F_aero + R_x
+    vx = vx + (throttle - Ffy * math.sin(delta) / m - F_load / m + vy * x[4]) * dt
+    vy = vy + (Fry / m + Ffy * math.cos(delta) / m - vx * x[4]) * dt
+    x[4] = x[4] + (Ffy * Lf * math.cos(delta) - Fry * Lr) / Iz * dt
+
+    x[2] = x[2] + x[4] * dt
+    x[2] = normalize_angle(x[2])
+
+    x[0] = x[0] + vx * math.cos(x[2]) * dt - vy * math.sin(x[2]) * dt
+    x[1] = x[1] + vx * math.sin(x[2]) * dt + vy * math.cos(x[2]) * dt
+    x[3] = math.sqrt(vx ** 2 + vy ** 2)
     return x
+
+
+def normalize_angle(angle):
+    """
+    Normalize an angle to [-pi, pi].
+    :param angle: (float)
+    :return: (float) Angle in radian in [-pi, pi]
+    """
+    while angle > np.pi:
+        angle -= 2.0 * np.pi
+
+    while angle < -np.pi:
+        angle += 2.0 * np.pi
+
+    return angle
 
 
 def calc_dynamic_window(x, config):
     """
     calculation dynamic window based on current state x
+    motion model
+    initial state [x(m), y(m), yaw(rad), v(m/s), delta(rad)]
     """
 
     # Dynamic window from robot specification
     Vs = [config.min_speed, config.max_speed,
-          -config.max_yaw_rate, config.max_yaw_rate]
+          -config.max_delta, config.max_delta]
 
+    """
     # Dynamic window from motion model
-    Vd = [x[3] - config.max_accel * config.dt,
-          x[3] + config.max_accel * config.dt,
-          x[4] - config.max_delta_yaw_rate * config.dt,
-          x[4] + config.max_delta_yaw_rate * config.dt]
+    Vd = [x[3] - config.max_speed,
+          x[3] + config.max_speed,
+          x[4] - config.max_delta,
+          x[4] + config.max_delta]
+    """
 
-    #  [v_min, v_max, yaw_rate_min, yaw_rate_max]
-    dw = [max(Vs[0], Vd[0]), min(Vs[1], Vd[1]),
-          max(Vs[2], Vd[2]), min(Vs[3], Vd[3])]
+    #  [min_throttle, max_throttle, min_steer, max_steer]
+    dw = [Vs[0], Vs[1], Vs[2], Vs[3]]
 
     return dw
 
@@ -132,6 +179,8 @@ def calc_dynamic_window(x, config):
 def predict_trajectory(x_init, v, y, config):
     """
     predict trajectory with an input
+    motion model
+    initial state [x(m), y(m), yaw(rad), v(m/s), delta(rad)]
     """
 
     x = np.array(x_init)
@@ -157,7 +206,7 @@ def calc_control_and_trajectory(x, dw, config, goal, ob):
 
     # evaluate all trajectory with sampled input in dynamic window
     for v in np.arange(dw[0], dw[1], config.v_resolution):
-        for y in np.arange(dw[2], dw[3], config.yaw_rate_resolution):
+        for y in np.arange(dw[2], dw[3], config.delta_resolution):
 
             trajectory = predict_trajectory(x_init, v, y, config)
             # calc cost
@@ -178,7 +227,7 @@ def calc_control_and_trajectory(x, dw, config, goal, ob):
                     # best v=0 m/s (in front of an obstacle) and
                     # best omega=0 rad/s (heading to the goal with
                     # angle difference of 0)
-                    best_u[1] = -config.max_delta_yaw_rate
+                    best_u[1] = -config.max_delta
     return best_u, best_trajectory
 
 
@@ -261,11 +310,11 @@ def plot_robot(x, y, yaw, config):  # pragma: no cover
 def main(gx=10.0, gy=10.0, robot_type=RobotType.circle):
     print(__file__ + " start!!")
     # initial state [x(m), y(m), yaw(rad), v(m/s), omega(rad/s)]
-    x = np.array([0.0, 0.0, math.pi / 8.0, 0.0, 0.0])
+    x = np.array([0.0, 0.0, math.pi / 8.0, 1.0, 0.0])
     # goal position [x(m), y(m)]
     goal = np.array([gx, gy])
 
-    # input [forward speed, yaw_rate]
+    # input [throttle, steer (delta)]
 
     config.robot_type = robot_type
     trajectory = np.array(x)

@@ -50,7 +50,20 @@ class NonLinearBicycleModel():
         pygame.draw.lines(map, self.red, False, points, 1)
 
     def update(self, throttle, delta, dt):
+        # applying the control inputs
         delta = np.clip(delta, -max_steer, max_steer)
+        Ffy = -Cf * math.atan2(((self.vy + Lf * self.omega) / self.vx - delta), 1.0)
+        Fry = -Cr * math.atan2((self.vy - Lr * self.omega) / self.vx, 1.0)
+        R_x = self.c_r1 * abs(self.vx)
+        F_aero = self.c_a * self.vx ** 2
+        F_load = F_aero + R_x
+        self.vx = self.vx + (throttle - Ffy * math.sin(delta) / m - F_load / m + self.vy * self.omega) * dt
+        self.vy = self.vy + (Fry / m + Ffy * math.cos(delta) / m - self.vx * self.omega) * dt
+        self.omega = self.omega + (Ffy * Lf * math.cos(delta) - Fry * Lr) / Iz * dt
+
+        self.yaw = self.yaw + self.omega * dt
+        self.yaw = normalize_angle(self.yaw)
+
         self.x = self.x + self.vx * math.cos(self.yaw) * dt - self.vy * math.sin(self.yaw) * dt
         self.y = self.y + self.vx * math.sin(self.yaw) * dt + self.vy * math.cos(self.yaw) * dt
 
@@ -60,17 +73,6 @@ class NonLinearBicycleModel():
             self.yaw) * dt
         self.y_screen = self.y + self.vx * self.m2p * math.sin(self.yaw) * dt + self.vy * self.m2p * math.cos(
             self.yaw) * dt * self.m2p
-
-        self.yaw = self.yaw + self.omega * dt
-        self.yaw = normalize_angle(self.yaw)
-        Ffy = -Cf * math.atan2(((self.vy + Lf * self.omega) / self.vx - delta), 1.0)
-        Fry = -Cr * math.atan2((self.vy - Lr * self.omega) / self.vx, 1.0)
-        R_x = self.c_r1 * abs(self.vx)
-        F_aero = self.c_a * self.vx ** 2
-        F_load = F_aero + R_x
-        self.vx = self.vx + (throttle - Ffy * math.sin(delta) / m - F_load / m + self.vy * self.omega) * dt
-        self.vy = self.vy + (Fry / m + Ffy * math.cos(delta) / m - self.vx * self.omega) * dt
-        self.omega = self.omega + (Ffy * Lf * math.cos(delta) - Fry * Lr) / Iz * dt
 
 
 # model:

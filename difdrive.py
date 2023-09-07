@@ -8,6 +8,8 @@ import numpy as np
 """
 This file contains the classes for generating the simulation environment and the RRT path finding algorithm
 """
+
+
 class Envir:
     def __init__(self, start, goal, dimentions, obsdim, obsnum):
         # colors
@@ -47,8 +49,8 @@ class Envir:
         # trail
         self.trail_set = []
 
-    def write_info(self, x, y, v, yaw):
-        txt = f"X: {x}, Y: {y}, V: {v}, Yaw: {int(math.degrees(yaw))}°"
+    def write_info(self, x, y, v, yaw, throttle):
+        txt = f"X: {x}, Y: {y}, V: {v}, Yaw: {int(math.degrees(yaw))}°, Throttle: {throttle}"
         # txt = f"Vl: {vl}, Vr: {vr}, theta: {int(math.degrees(theta))}"
         self.text = self.font.render(txt, True, self.white, self.black)
         self.map.blit(self.text, self.textRect)
