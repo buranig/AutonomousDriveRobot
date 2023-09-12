@@ -12,6 +12,10 @@ from enum import Enum
 import matplotlib.pyplot as plt
 import numpy as np
 
+from byciclemodel import Rectangle
+from difdrive import RRTGraph
+import shapely.geometry as sg
+
 show_animation = True
 
 max_steer = np.radians(30.0)  # [rad] max steering angle
@@ -49,14 +53,14 @@ class Config:
     simulation parameter class
     """
 
-    def __init__(self):
+    def __init__(self, obstacles):
         # robot parameter
-        self.max_speed = 0.5 # [m/s]
-        self.min_speed = 0# [m/s]
+        self.max_speed = 0.5  # [m/s]
+        self.min_speed = 0  # [m/s]
         self.max_delta = np.radians(45)  # [rad]
         # self.max_accel = 0.2  # [m/ss]
         # self.max_delta_yaw_rate = 40.0 * math.pi / 180.0  # [rad/ss]
-        self.v_resolution = 0.1# [m/s]
+        self.v_resolution = 0.1  # [m/s]
         self.delta_resolution = math.radians(5)  # [rad/s]
         self.dt = 0.1  # [s] Time tick for motion prediction
         self.predict_time = 3.0  # [s]
@@ -74,7 +78,8 @@ class Config:
         self.robot_width = 0.5  # [m] for collision check
         self.robot_length = 1.2  # [m] for collision check
         # obstacles [x(m) y(m), ....]
-        self.ob = np.array([[-1, -1],
+        self.ob = obstacles
+        """self.ob = np.array([[-1, -1],
                             [0, 2],
                             [4.0, 2.0],
                             [5.0, 4.0],
@@ -89,7 +94,7 @@ class Config:
                             [12.0, 12.0],
                             [15.0, 15.0],
                             [13.0, 13.0]
-                            ])
+                            ])"""
 
     @property
     def robot_type(self):
@@ -102,7 +107,7 @@ class Config:
         self._robot_type = value
 
 
-config = Config()
+#config = Config()
 
 
 def motion(x, u, dt):
@@ -235,15 +240,33 @@ def calc_obstacle_cost(trajectory, ob, config):
     """
     calc obstacle cost inf: collision
     """
-    ox = ob[:, 0]
+    """ox = ob[:, 0]
     oy = ob[:, 1]
     dx = trajectory[:, 0] - ox[:, None]
     dy = trajectory[:, 1] - oy[:, None]
-    r = np.hypot(dx, dy)
+    r = np.hypot(dx, dy)"""
+
+    min_r = np.inf
+
+    rectangle = Rectangle((trajectory[0, 0], trajectory[0, 1]), trajectory[0, 2], 20, 20)
 
     if config.robot_type == RobotType.rectangle:
-        yaw = trajectory[:, 2]
-        rot = np.array([[np.cos(yaw), -np.sin(yaw)], [np.sin(yaw), np.cos(yaw)]])
+        for idx in range(0, len(trajectory)):
+            yaw = trajectory[idx, 2]
+            rectangle.rotation((trajectory[idx, 0], trajectory[idx, 1]), yaw)
+            instant = sg.Polygon([rectangle.buf_p1, rectangle.buf_p2, rectangle.buf_p3, rectangle.buf_p4,
+                                  rectangle.buf_p1])
+
+            for obstacle in ob:
+                obst = RRTGraph.pygame2shapley(obstacle)
+                if obst.intersects(instant):
+                    return float("Inf")
+                r = obst.distance(instant)
+                if r < min_r:
+                    min_r = r
+
+
+        """rot = np.array([[np.cos(yaw), -np.sin(yaw)], [np.sin(yaw), np.cos(yaw)]])
         rot = np.transpose(rot, [2, 0, 1])
         local_ob = ob[:, None] - trajectory[:, 0:2]
         local_ob = local_ob.reshape(-1, local_ob.shape[-1])
@@ -258,9 +281,9 @@ def calc_obstacle_cost(trajectory, ob, config):
             return float("Inf")
     elif config.robot_type == RobotType.circle:
         if np.array(r <= config.robot_radius).any():
-            return float("Inf")
+            return float("Inf")"""
 
-    min_r = np.min(r)
+    # min_r = np.min(r)
     return 1.0 / min_r  # OK
 
 
@@ -307,7 +330,7 @@ def plot_robot(x, y, yaw, config):  # pragma: no cover
         plt.plot([x, out_x], [y, out_y], "-k")
 
 
-def main(gx=10.0, gy=10.0, robot_type=RobotType.circle):
+"""def main(gx=10.0, gy=10.0, robot_type=RobotType.circle):
     print(__file__ + " start!!")
     # initial state [x(m), y(m), yaw(rad), v(m/s), omega(rad/s)]
     x = np.array([0.0, 0.0, math.pi / 8.0, 1.0, 0.0])
@@ -355,4 +378,4 @@ def main(gx=10.0, gy=10.0, robot_type=RobotType.circle):
 
 if __name__ == '__main__':
     main(robot_type=RobotType.rectangle)
-    # main(robot_type=RobotType.circle)
+    # main(robot_type=RobotType.circle)"""

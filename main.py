@@ -2,10 +2,13 @@ import math
 
 import numpy as np
 import pygame
+
+import DWmodified
 from difdrive import RRTGraph, Envir
 import time
 from byciclemodel import NonLinearBicycleModel
 from controller import Controller2D
+from DWmodified import *
 
 
 def main():
@@ -31,7 +34,7 @@ def main():
 
     # obstacles
     obstacles = graph.makeobs()
-    environment.drawMap(obstacles, )
+    environment.drawMap(obstacles)
 
     iteration = 0
 
@@ -69,7 +72,7 @@ def main():
             graph.parent.append(0)
 
             # optimization
-            graph.collision_count = {} # allows us to turn off some nodes that are in bad positions
+            graph.collision_count = {}  # allows us to turn off some nodes that are in bad positions
             graph.collision_count[0] = 0
             graph.iteration = 0
 
@@ -96,6 +99,12 @@ def main():
     # the robot
     robot = NonLinearBicycleModel(start[0], start[1])
 
+    # configuration for the Dynamic window approach
+    config = DWmodified.Config(obstacles)
+    u, predicted_trajectory = dwa_control([robot.x, robot.y, robot.yaw, np.sqrt(robot.vx ** 2 + robot.vy ** 2),
+                                           robot.omega], config, np.array(goal), config.ob)
+    robot.draw_dynamic_window(environment.map, predicted_trajectory)
+
     # controller
     controller = Controller2D(coord_path)
     robot.draw(environment.map)
@@ -115,6 +124,11 @@ def main():
         dt = (pygame.time.get_ticks() - last_time) / 1000
         last_time = pygame.time.get_ticks()
 
+        # Dynamic Window Approach
+        u, predicted_trajectory = dwa_control([robot.x, robot.y, robot.yaw, np.sqrt(robot.vx ** 2 + robot.vy ** 2),
+                                               robot.omega], config, np.array(goal), config.ob)
+        robot.draw_dynamic_window(environment.map, predicted_trajectory)
+
         # updating position
         pygame.display.update()
         environment.map.fill(environment.white)
@@ -127,15 +141,15 @@ def main():
         robot.update(controller.throttle, controller.steer, dt)
 
         # drawing the new situation
-        robot.draw(environment.map)
+        robot.draw(environment.map)  # draw the rectangle
         environment.trail((robot.x, robot.y))
-        #print(math.degrees(controller.steer))
+        # print(math.degrees(controller.steer))
         environment.robot_frame((robot.x, robot.y), robot.yaw, controller.steer)
         environment.target = controller.target
         environment.drawMap(obstacles)
         environment.drawPath(graph.getPathCoords())
         environment.write_info(round(robot.x, 2), round(robot.y, 2), round(np.sqrt(robot.vx ** 2 + robot.vy ** 2), 2),
-                               robot.yaw, round(controller.throttle,2))
+                               robot.yaw, round(controller.throttle, 2))
         # check reaching goal
         dist_to_goal = math.hypot(robot.x - goal[0], robot.y - goal[1])
         if dist_to_goal <= graph.car_lat_dim:

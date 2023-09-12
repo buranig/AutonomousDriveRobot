@@ -33,6 +33,8 @@ class NonLinearBicycleModel():
         self.vx = vx
         self.vy = vy
         self.omega = omega
+        self.beta = omega
+
         # Aerodynamic and friction coefficients
         self.c_a = 1.36
         self.c_r1 = 0.01
@@ -49,8 +51,13 @@ class NonLinearBicycleModel():
                   self.rectangle.buf_p1]
         pygame.draw.lines(map, self.red, False, points, 1)
 
+    def draw_dynamic_window(self, map, trajectory):
+        points = zip(trajectory[:, 0], trajectory[:, 1])
+        pygame.draw.lines(map, self.green, False, list(points), 1)
+
     def update(self, throttle, delta, dt):
         # applying the control inputs
+        self.beta = math.atan2((Lr * math.tan(delta) / L), 1.0)
         delta = np.clip(delta, -max_steer, max_steer)
         Ffy = -Cf * math.atan2(((self.vy + Lf * self.omega) / self.vx - delta), 1.0)
         Fry = -Cr * math.atan2((self.vy - Lr * self.omega) / self.vx, 1.0)
