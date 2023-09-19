@@ -57,7 +57,7 @@ class Envir:
 
     def trail(self, pos):
         for i in range(0, len(self.trail_set) - 1):
-            pygame.draw.line(self.map, self.yellow, (self.trail_set[i][0], self.trail_set[i][1]),
+            pygame.draw.line(self.map, self.blue, (self.trail_set[i][0], self.trail_set[i][1]),
                              (self.trail_set[i + 1][0], self.trail_set[i + 1][1]))
 
         if self.trail_set.__sizeof__() > 30000:
